@@ -7,7 +7,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import java.util.Optional;
 
 @Controller
-public class IndexPage {
+public class ClientIndexPage {
 
     @GetMapping({
             "",

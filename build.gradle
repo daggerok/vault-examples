@@ -7,7 +7,7 @@ plugins {
     // gradle dependencyUpdates -Drevision=release
     id 'com.github.ben-manes.versions' version '0.13.0'
     id 'org.springframework.boot' version '1.5.1.RELEASE'
-    id 'io.spring.dependency-management' version '1.0.0.RELEASE'
+    id 'io.spring.dependency-management' version '1.0.0.RC2'
 }
 
 allprojects {
@@ -34,16 +34,12 @@ allprojects {
     bootRun { systemProperties = System.properties }
 }
 
-subprojects {}
-
 dependencies {
-    compile(project(':shared:fallback'))
-    compileOnly(project(':vault-backend'))
-    compileOnly(project(':vault-client'))
+    compileOnly project(':fallback')
+    compileOnly project(':vault-backend')
+    compileOnly project(':vault-client')
 }
 
-bootRepackage {
-    mainClass = 'daggerok.vault.Main'
-}
+apply from: "$rootDir/docker/docker.gradle"
 
 task wrapper(type: Wrapper) { gradleVersion = '3.3' }

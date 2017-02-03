@@ -1,7 +1,3 @@
 dependencies {
-    compile(project(':shared:fallback'))
-}
-
-bootRepackage {
-    mainClass = 'daggerok.vault.backend.Main'
+    compile project(':fallback')
 }

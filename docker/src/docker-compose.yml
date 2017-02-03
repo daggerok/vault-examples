@@ -1,0 +1,37 @@
+version: '2'
+services:
+  spring-vault:
+    container_name: spring-vault-0.0.1
+    #hostname: spring-vault-0.0.1
+    image: vault:0.6.4
+    environment:
+      #VAULT_REDIRECT_INTERFACE: ...
+      #VAULT_CLUSTER_INTERFACE: ...
+      VAULT_DEV_LISTEN_ADDRESS: 0.0.0.0:8200
+      VAULT_DEV_ROOT_TOKEN_ID: myroot
+      VAULT_LOCAL_CONFIG: '{"backend": {"file": {"path": "/vault/file"}}, "default_lease_ttl": "168h", "max_lease_ttl": "720h"}'
+    ports:
+      - '8200:8200'
+    links:
+      - spring-consul:consul
+    volumes:
+      - spring-volume:/vault/file
+    networks:
+      - spring-network
+  spring-consul:
+    container_name: spring-consul-0.0.1
+    image: consul:0.7.3
+    #hostname: spring-consul-0.0.1
+    ports:
+      - '8300:8300'
+      - '8400:8400'
+      - '8500:8500'
+      - '8600:53'
+    networks:
+      - spring-network
+volumes:
+  spring-volume:
+    driver: local
+networks:
+  spring-network:
+    driver: bridge

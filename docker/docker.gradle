@@ -1,0 +1,16 @@
+def compose = 'docker-compose --project-name vault -f ./docker/src/docker-compose.yml'
+
+task dockerUp(type: Exec) {
+  executable 'bash'
+  args '-c', "$compose up -d"
+}
+
+task dockerDown(type: Exec) {
+  executable 'bash'
+  args '-c', "$compose down -v"
+}
+
+task dockerLogs(type: Exec) {
+  executable 'bash'
+  args '-c', "$compose logs"
+}
