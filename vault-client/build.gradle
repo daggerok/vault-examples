@@ -1,0 +1,7 @@
+dependencies {
+    compile(project(':shared:fallback'))
+}
+
+bootRepackage {
+    mainClass = 'daggerok.vault.client.Main'
+}

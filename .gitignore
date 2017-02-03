@@ -1,0 +1,15 @@
+.idea
+!.idea/modules*
+!.idea/runConfigurations
+!.idea/compiler.xml
+!.idea/misc.xml
+
+gradle/
+!gradle/wrapper/gradle-wrapper.jar
+
+.gradle/
+**/build/
+
+*.iws
+!*.iml
+!*.ipr

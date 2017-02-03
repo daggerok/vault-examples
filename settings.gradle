@@ -1,0 +1,4 @@
+rootProject.name = 'vault'
+include 'shared:fallback'
+include 'vault-backend'
+include 'vault-client'
