@@ -1,0 +1,6 @@
+spring:
+  application:
+    name: consul-client
+management:
+  security:
+    enabled: false
