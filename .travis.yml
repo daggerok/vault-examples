@@ -1,11 +1,11 @@
-sudo: required
+group: edge
 dist: trusty
 language: java
 jdk: oraclejdk8
 install: true
 env:
   SPRING_PROFILES_ACTIVE: default
-  DOCKER_COMPOSE_VERSION: 1.10.0
+  DOCKER_COMPOSE_VERSION: 1.12.0
 before_install:
   # gradle
   - curl -s "https://get.sdkman.io" | bash
