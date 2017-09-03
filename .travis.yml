@@ -9,18 +9,49 @@ before_install:
 
   # install docker-compose
   - sudo apt update
-  - sudo apt install -y python-pip curl jq libxml2-utils
+  - sudo apt install -y python-pip curl jq libxml2-utils unzip
   - sudo pip install docker-compose httpie
   - sudo usermod -aG docker $(whoami)
+
+  - export VAULT_VERSION="0.8.1"
+  - export VAULT_PLATFORM="linux_amd64"
+  - export VAULT_ZIP="vault_${VAULT_VERSION}_$VAULT_PLATFORM.zip"
+  - export VAULT_URL="https://releases.hashicorp.com/vault/$VAULT_VERSION/$VAULT_ZIP"
+  - curl -O $VAULT_URL
+  - unzip $VAULT_ZIP
+  - sudo mv -f vault /usr/local/bin/
 
   # kill whatever punning on postgres / rabbitmq port
   - sudo kill $(sudo lsof -t -i:5432) | true
   - sudo kill $(sudo lsof -t -i:5672) | true
   - sudo kill $(sudo lsof -t -i:27017) | true
+  - sudo kill $(sudo lsof -t -i:8200) | true
 
 script:
   - bash gradlew useless-shit_clean useless-shit_build
   - bash gradlew     template_clean     template_build
+  - bash gradlew  hello-world_clean  hello-world_build
+
+after_script:
+
+  - bash gradlew hello-world_docker_composeUp
+
+  - echo "myroot" > ~/.vault-token
+  - export VAULT_ADDR='http://0.0.0.0:8200'
+
+  - sleep 1
+  - vault auth $(cat ~/.vault-token)
+
+  - vault write /secret/app/config/host hostname=localhost
+  - vault write /secret/app/config/user username=user password=pass
+
+  - vault read /secret/app/config/host
+
+  - http :8200/v1/secret/app/config/user X-Vault-Token:`cat ~/.vault-token`
+  - curl -sS localhost:8200/v1/secret/app/config/host -H "X-Vault-Token:$(cat ~/.vault-token)" | jq
+  - http -b --pretty=none :8200/v1/secret/app/config/user X-Vault-Token:`cat ~/.vault-token` | jq .data.password
+
+  - bash gradlew hello-world_docker_composeDown
 
 before_cache:
   - bash gradlew --stop

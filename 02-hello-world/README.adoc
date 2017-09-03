@@ -1,0 +1,149 @@
+= basic vault operations image:https://travis-ci.org/daggerok/vault-examples.svg?branch=master["Build Status", link="https://travis-ci.org/daggerok/vault-examples"]
+
+=== basic vault usage
+
+.infrastructure
+[source,bash]
+----
+$ gradle composeUp
+----
+
+.start working with vault
+[source,bash]
+----
+$ export VAULT_ADDR='http://0.0.0.0:8200'
+----
+
+.status
+[source,bash]
+----
+$ vault status
+Sealed: false
+Key Shares: 1
+Key Threshold: 1
+Unseal Progress: 0
+Unseal Nonce:
+Version: 0.8.1
+Cluster Name: vault-cluster-78789bdf
+Cluster ID: b1e29574-e846-7231-cb7d-22e5e8245488
+
+High-Availability Enabled: false
+----
+
+.authenticate
+[source,bash]
+----
+$ vault auth myroot
+Successfully authenticated! You are now logged in.
+token: myroot
+token_duration: 0
+token_policies: [root]
+----
+
+.add data to vault storage
+[source,bash]
+----
+$ vault write /secret/app/config/host hostname=localhost
+Success! Data written to: secret/app/config/host
+$ vault write /secret/app/config/user username=user password=pass
+Success! Data written to: secret/app/config/user
+----
+
+.enable vault clients authorize easily
+[source,bash]
+----
+$ echo "myroot" > ~/.vault-token
+$ export VAULT_ADDR='http://0.0.0.0:8200'
+----
+
+.auth in bash (clients)
+[source,bash]
+----
+$ vault auth $(cat ~/.vault-token)
+----
+
+.auth in fish (clients)
+[source,bash]
+----
+$ vault auth (cat ~/.vault-token)
+----
+
+.get data from vault storage (clients)
+[source,bash]
+----
+$ vault read /secret/app/config/user
+Key             	Value
+---             	-----
+refresh_interval	168h0m0s
+password        	pass
+username        	user
+----
+
+.via httpie in bash (clients)
+[source,bash]
+----
+$ http :8200/v1/secret/app/config/user "X-Vault-Token:$(cat ~/.vault-token)"
+HTTP/1.1 200 OK
+Cache-Control: no-store
+Content-Length: 200
+Content-Type: application/json
+Date: Sun, 03 Sep 2017 23:26:01 GMT
+
+{
+    "auth": null,
+    "data": {
+        "password": "pass",
+        "username": "user"
+    },
+    "lease_duration": 604800,
+    "lease_id": "",
+    "renewable": false,
+    "request_id": "443ba8f4-ae34-bd73-1db3-16eabc1613e3",
+    "warnings": null,
+    "wrap_info": null
+}
+----
+
+.httpie in fish
+[source,fish]
+----
+~-> http :8200/v1/secret/app/config/user 'X-Vault-Token':(cat ~/.vault-token)
+----
+
+.using jq
+[source,fish]
+----
+~-> http -b --pretty=none :8200/v1/secret/app/config/user 'X-Vault-Token':(cat ~/.vault-token) | jq .data.password
+----
+
+.via curl + jq in bash (clients)
+[source,bash]
+----
+$ curl -sS localhost:8200/v1/secret/app/config/user -H "X-Vault-Token:$(cat ~/.vault-token)" | jq
+{
+  "request_id": "52978917-6360-5733-d576-da085287639b",
+  "lease_id": "",
+  "renewable": false,
+  "lease_duration": 604800,
+  "data": {
+    "password": "pass",
+    "username": "user"
+  },
+  "wrap_info": null,
+  "warnings": null,
+  "auth": null
+}
+----
+
+
+.curl + jq in fish
+[source,fish]
+----
+~-> curl -sS localhost:8200/v1/secret/app/config/user -H 'X-Vault-Token':(cat ~/.vault-token) | jq
+----
+
+.clean up
+[source,bash]
+----
+gradle composeDown
+----

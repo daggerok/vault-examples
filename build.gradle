@@ -13,7 +13,7 @@ plugins {
   id "com.github.ben-manes.versions" version "0.15.0"
 }
 
-["clean", "docker:composeDown", "build"].each { buildTaskName ->
+["clean", "docker:composeUp", "docker:composeDown", "build"].each { buildTaskName ->
 
   gradle
       .includedBuilds
@@ -35,7 +35,7 @@ Task generalize(String taskName) {
   }
 }
 
-["clean", "composeDown"].each { generalize it }
+["clean", "composeUp", "composeDown"].each { generalize it }
 
 task wrapper(type: Wrapper) {
   gradleVersion = "4.1"
