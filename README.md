@@ -1,4 +1,4 @@
-# vault [![build](https://travis-ci.org/daggerok/vault.svg?branch=master)](https://travis-ci.org/daggerok/vault)
+# vault [![build](https://travis-ci.org/daggerok/vault-examples.svg?branch=master)](https://travis-ci.org/daggerok/vault-examples)
 
 secure storing and getting things vault
 
