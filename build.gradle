@@ -17,7 +17,7 @@ plugins {
 
   gradle
       .includedBuilds
-      .collect({ IncludedBuild ib -> ib?.task(":$buildTaskName") })
+      .collect { it.task ":$buildTaskName" }
       .each { build ->
 
     tasks.create(name: build.name.substring(1), group: DEFAULT_TASKS_GROUP) {
@@ -27,15 +27,15 @@ plugins {
   }
 }
 
-Task generalize(final String taskName) {
-  Set<Task> deps = tasks.findAll({ it.name.endsWith(taskName) && it.name != taskName })
+Task generalize(String taskName) {
+  Set<Task> target = tasks.findAll({ it.name.endsWith(taskName) && it.name != taskName })
   return tasks.create(taskName) {
     group DEFAULT_TASKS_GROUP
-    dependsOn deps
+    dependsOn target
   }
 }
 
-["clean", "composeDown"].each { generalize(it) }
+["clean", "composeDown"].each { generalize it }
 
 task wrapper(type: Wrapper) {
   gradleVersion = "4.1"
