@@ -35,15 +35,6 @@ allprojects { p ->
 
   p.bootRun { systemProperties = System.properties }
   p.springBoot { executable = true }
-
-  if (p.name == "fallback") return
-  /* // TODO...
-  [p.test, p.build, p.bootRun].each { t ->
-    t.shouldRunAfter clean, assemble, ":docker:composeUp"
-    t.dependsOn ":docker:composeUp"
-    t.finalizedBy ":docker:composeDown"
-  }
-  */
 }
 
 dependencies {

@@ -1,5 +1,5 @@
-rootProject.name = 'vault-examples'
+rootProject.name = "vault-examples"
 
-['0-template', '01-skip-this-useless-shit']
+["0-template", "01-skip-this-useless-shit"]
     .collect { projectName -> file projectName }
     .each { build -> includeBuild build }

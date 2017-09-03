@@ -1,2 +1,2 @@
-rootProject.name = 'useless-shit'
-include ':docker', ':fallback', ':vault-backend', ':vault-client'
+rootProject.name = "useless-shit"
+include ":docker", ":fallback", ":vault-backend", ":vault-client"

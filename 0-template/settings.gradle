@@ -1,2 +1,3 @@
-rootProject.name = 'template'
-include ':docker', ':fallback'
+rootProject.name = "template"
+include ":docker"
+include ":fallback"
