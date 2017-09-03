@@ -1,0 +1,5 @@
+= vault-examples image:https://travis-ci.org/daggerok/vault-examples.svg?branch=master["Build Status", link="https://travis-ci.org/daggerok/vault-examples"]
+
+This repository contains some vault playground examples
+
+. link:01-basics/[Basics]

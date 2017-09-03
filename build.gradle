@@ -1,45 +1,42 @@
+buildscript {
+  ext {
+    DEFAULT_TASKS_GROUP = "application tasks"
+  }
+}
+
 plugins {
-    id 'java'
-    id 'idea'
-    id 'eclipse'
-    // gradle build taskTree
-    id 'com.dorongold.task-tree' version '1.2.2'
-    // gradle dependencyUpdates -Drevision=release
-    id 'com.github.ben-manes.versions' version '0.13.0'
-    id 'org.springframework.boot' version '1.5.1.RELEASE'
-    id 'io.spring.dependency-management' version '1.0.0.RC2'
+  id "idea"
+  id "eclipse"
+  // gradle build taskTree
+  id "com.dorongold.task-tree" version "1.3"
+  // gradle dependencyUpdates -Drevision=release
+  id "com.github.ben-manes.versions" version "0.15.0"
 }
 
-allprojects {
-    apply plugin: 'java'
-    apply plugin: 'org.springframework.boot'
-    apply plugin: 'io.spring.dependency-management'
+["clean", "docker:composeDown", "build"].each { buildTaskName ->
 
-    springBoot { executable = true }
+  gradle
+      .includedBuilds
+      .collect({ IncludedBuild ib -> ib?.task(":$buildTaskName") })
+      .each { build ->
 
-    jar { version = '0.0.1' }
-
-    targetCompatibility = sourceCompatibility = JavaVersion.VERSION_1_8
-
-    repositories { jcenter() }
-
-    dependencies {
-        compileOnly('org.projectlombok:lombok')
-        compile('org.springframework.boot:spring-boot-starter-web')
-        compile('org.springframework.boot:spring-boot-starter-actuator')
-        runtime('org.springframework.boot:spring-boot-devtools')
-        testCompile('org.springframework.boot:spring-boot-starter-test')
+    tasks.create(name: build.name.substring(1), group: DEFAULT_TASKS_GROUP) {
+      dependsOn build
+      shouldRunAfter build
     }
-
-    bootRun { systemProperties = System.properties }
+  }
 }
 
-dependencies {
-    compileOnly project(':fallback')
-    compileOnly project(':vault-backend')
-    compileOnly project(':vault-client')
+def generalize(final String taskName) {
+  return tasks.create(taskName) {
+    group DEFAULT_TASKS_GROUP
+    dependsOn tasks.findAll { it.name.endsWith(taskName) && it.name != taskName }
+  }
 }
 
-apply from: "$rootDir/docker/docker.gradle"
+generalize("clean")
+generalize("composeDown")
 
-task wrapper(type: Wrapper) { gradleVersion = '3.3' }
+task wrapper(type: Wrapper) {
+  gradleVersion = "4.1"
+}
