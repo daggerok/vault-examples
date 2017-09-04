@@ -32,7 +32,8 @@ before_install:
   - sudo service mysql stop
 
 script:
-  - bash gradlew template_clean template_build
+  #- bash gradlew template_clean template_build
+  - bash gradlew production-config_clean production-config_build
 
 after_script:
 
@@ -51,6 +52,7 @@ after_script:
   - sleep 1
 
   - vault read /secret/app/config/host
+  - vault read --format=json /secret/app/config/host | jq -r .data
 
   - http :8200/v1/secret/app/config/user X-Vault-Token:`cat ~/.vault-token`
   - curl -sS localhost:8200/v1/secret/app/config/host -H "X-Vault-Token:$(cat ~/.vault-token)" | jq

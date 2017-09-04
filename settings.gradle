@@ -5,6 +5,7 @@ rootProject.name = "vault-examples"
     "01-skip-this-useless-shit",
     "02-hello-world",
     "03-vault-mount-mysql",
+    "04-production-mode",
 
 ].collect { file it }
     .each { includeBuild it }

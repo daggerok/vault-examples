@@ -4,3 +4,11 @@ This repository contains some vault playground examples
 
 . link:02-hello-world/[hello world]
 . link:03-vault-mount-mysql/[mysql backend]
+. link:04-production-mode/[production config]
+
+TODO:
+
+. store into vault using plain java
+. use spring-boot auto-configuration + @VaultPropertySource
+. use vault to configure database connection
+. link:https://www.youtube.com/watch?v=lVZkj688R4I[view this]

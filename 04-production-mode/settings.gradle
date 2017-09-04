@@ -1,0 +1,3 @@
+rootProject.name = "production-config"
+include ":docker"
+include ":fallback"

@@ -1,0 +1,19 @@
+= production mode config image:https://travis-ci.org/daggerok/vault-examples.svg?branch=master["Build Status", link="https://travis-ci.org/daggerok/vault-examples"]
+
+.infrastructure
+[source,bash]
+----
+gradle composeUp
+----
+
+.check consul UI
+[source,bash]
+----
+http://localhost:8500/ui/#/dc1/kv/
+----
+
+.clean up
+[source,bash]
+----
+gradle composeDown
+----
