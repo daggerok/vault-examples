@@ -3,3 +3,4 @@
 This repository contains some vault playground examples
 
 . link:02-hello-world/[hello world]
+. link:03-vault-mount-mysql/[mysql backend]

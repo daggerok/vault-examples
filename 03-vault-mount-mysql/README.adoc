@@ -1,0 +1,141 @@
+= vault mount (mysql backend) image:https://travis-ci.org/daggerok/vault-examples.svg?branch=master["Build Status", link="https://travis-ci.org/daggerok/vault-examples"]
+
+.infrastructure
+[source,bash]
+----
+gradle composeUp
+export VAULT_ADDR='http://0.0.0.0:8200'
+vault auth $(cat ~/.vault-token)
+----
+
+.mount mysql
+[source,bash]
+----
+$ vault mount mysql
+Successfully mounted 'mysql' at 'mysql'!
+----
+
+.writing to vault (remember in docker mysql host is: mysql)
+[source,bash]
+----
+$ vault write mysql/config/connection connection_url="vault:vault@tcp(mysql:3306)/vault"
+
+
+The following warnings were returned from the Vault server:
+* Read access to this endpoint should be controlled via ACLs as it will return the connection URL as it is, including passwords, if any.
+----
+
+.writing the policy
+[source,bash]
+----
+$ vault write mysql/roles/readonly \
+    sql="CREATE USER '{{name}}'@'%' IDENTIFIED BY '{{password}}'; GRANT SELECT ON *.* TO '{{name}}'@'%';"
+Success! Data written to: mysql/roles/readonly
+----
+
+.read declarations
+[source,bash]
+----
+$ http :8200/v1/mysql/roles/readonly "X-Vault-Token:$(cat ~/.vault-token)"
+HTTP/1.1 200 OK
+Cache-Control: no-store
+Content-Length: 283
+Content-Type: application/json
+Date: Mon, 04 Sep 2017 02:02:15 GMT
+
+{
+    "auth": null,
+    "data": {
+        "revocation_sql": "",
+        "sql": "CREATE USER '{{name}}'@'%' IDENTIFIED BY '{{password}}'; GRANT SELECT ON *.* TO '{{name}}'@'%';"
+    },
+    "lease_duration": 0,
+    "lease_id": "",
+    "renewable": false,
+    "request_id": "6de11c6e-7e8e-1e5a-4a0b-c7be60eb074a",
+    "warnings": null,
+    "wrap_info": null
+}
+----
+
+.can't access to creds from regular unpriveleged user
+[source,bash]
+----
+$ http :8200/v1/mysql/creds/readonly "X-Vault-Token:$(cat ~/.vault-token)"
+# ...
+{
+    "errors": [
+        "1 error occurred:\n\n* Error 1227: Access denied; you need (at least one of) the CREATE USER privilege(s) for this operation"
+    ]
+}
+----
+
+.use priveleged user connection
+[source,bash]
+----
+$ vault write mysql/config/connection connection_url="root:mysql@tcp(mysql:3306)/vault"
+----
+
+.read roles
+[source,bash]
+----
+$ http :8200/v1/mysql/creds/readonly "X-Vault-Token:$(cat ~/.vault-token)"
+HTTP/1.1 200 OK
+Cache-Control: no-store
+Content-Length: 300
+Content-Type: application/json
+Date: Mon, 04 Sep 2017 02:05:21 GMT
+
+{
+    "auth": null,
+    "data": {
+        "password": "1bee1156-2b42-18c2-3e0f-4b4d441f238a",
+        "username": "read-toke-a72e24"
+    },
+    "lease_duration": 604800,
+    "lease_id": "mysql/creds/readonly/59b19a36-9a52-b719-ae5b-18221979b495",
+    "renewable": true,
+    "request_id": "0b63d965-23b9-6eae-e22a-6ca5025ce695",
+    "warnings": null,
+    "wrap_info": null
+}
+----
+
+.fetch user and password to login in mysql
+[source,bash]
+----
+$ export JSON=$(http -b --pretty=none :8200/v1/mysql/creds/readonly "X-Vault-Token:$(cat ~/.vault-token)")
+$ export USER=$(echo $JSON | jq -r '.data.username')
+$ export PASSWORD=$(echo $JSON | jq -r '.data.password')
+$ echo $USER\n$PASSWORD
+read-toke-a72e24
+1bee1156-2b42-18c2-3e0f-4b4d441f238a
+----
+
+.now we can connect with that user
+[source,bash]
+----
+$ mysqlsh -h 0.0.0.0 -P 3306 -u read-toke-a72e24 -p
+Creating a Session to 'read-toke-a72e24@0.0.0.0:3306'
+Enter password: # <- enter here: 1bee1156-2b42-18c2-3e0f-4b4d441f238a
+Your MySQL connection id is 19
+Server version: 5.7.19 MySQL Community Server (GPL)
+No default schema selected; type \use <schema> to set one.
+MySQL Shell 1.0.10
+
+Copyright (c) 2016, 2017, Oracle and/or its affiliates. All rights reserved.
+
+Oracle is a registered trademark of Oracle Corporation and/or its
+affiliates. Other names may be trademarks of their respective
+owners.
+
+Type '\help' or '\?' for help; '\quit' to exit.
+
+Currently in JavaScript mode. Use \sql to switch to SQL mode and execute queries.
+----
+
+.clean up
+[source,bash]
+----
+gradle composeDown
+----

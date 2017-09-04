@@ -1,0 +1,3 @@
+rootProject.name = "mysql-backend"
+include ":docker"
+include ":fallback"

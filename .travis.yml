@@ -1,6 +1,9 @@
 group: edge
 dist: trusty
 
+services:
+  - docker
+
 language: java
 jdk: oraclejdk8
 
@@ -9,9 +12,8 @@ before_install:
 
   # install docker-compose
   - sudo apt update
-  - sudo apt install -y python-pip curl jq libxml2-utils unzip
-  - sudo pip install docker-compose httpie
-  - sudo usermod -aG docker $(whoami)
+  - sudo apt install -y curl jq libxml2-utils unzip
+  - sudo pip install httpie
 
   - export VAULT_VERSION="0.8.1"
   - export VAULT_PLATFORM="linux_amd64"
@@ -19,24 +21,26 @@ before_install:
   - export VAULT_URL="https://releases.hashicorp.com/vault/$VAULT_VERSION/$VAULT_ZIP"
   - curl -O $VAULT_URL
   - unzip $VAULT_ZIP
-  - sudo mv -f vault /usr/local/bin/
+  - mkdir -p ~/bin
+  - mv -f vault ~/bin/
+  - export PATH="~/bin:$PATH"
 
-  # kill whatever punning on postgres / rabbitmq port
-  - sudo kill $(sudo lsof -t -i:5432) | true
-  - sudo kill $(sudo lsof -t -i:5672) | true
-  - sudo kill $(sudo lsof -t -i:27017) | true
-  - sudo kill $(sudo lsof -t -i:8200) | true
+  ## kill whatever punning
+  #- ls -la /etc/init.d/
+  - sudo service postgresql stop
+  - sudo service rabbitmq-server stop
+  - sudo service mysql stop
 
 script:
-  - bash gradlew useless-shit_clean useless-shit_build
-  - bash gradlew     template_clean     template_build
-  - bash gradlew  hello-world_clean  hello-world_build
+  - bash gradlew template_clean template_build
 
 after_script:
 
+  # hello-world
   - bash gradlew hello-world_docker_composeUp
 
   - echo "myroot" > ~/.vault-token
+  - sleep 1
   - export VAULT_ADDR='http://0.0.0.0:8200'
 
   - sleep 1
@@ -44,6 +48,7 @@ after_script:
 
   - vault write /secret/app/config/host hostname=localhost
   - vault write /secret/app/config/user username=user password=pass
+  - sleep 1
 
   - vault read /secret/app/config/host
 
@@ -52,6 +57,39 @@ after_script:
   - http -b --pretty=none :8200/v1/secret/app/config/user X-Vault-Token:`cat ~/.vault-token` | jq .data.password
 
   - bash gradlew hello-world_docker_composeDown
+
+  # vault-mount-mysql
+  - bash gradlew mysql-backend_docker_composeUp
+
+  - echo "myroot" > ~/.vault-token
+  - sleep 1
+  - export VAULT_ADDR='http://0.0.0.0:8200'
+
+  - sleep 1
+  - vault auth $(cat ~/.vault-token)
+
+  - sleep 1
+  - vault mount mysql
+  - sleep 1
+  - vault write mysql/config/connection connection_url="vault:vault@tcp(mysql:3306)/vault"
+
+  - sleep 1
+  - vault write mysql/roles/readonly \
+      sql="CREATE USER '{{name}}'@'%' IDENTIFIED BY '{{password}}'; GRANT SELECT ON *.* TO '{{name}}'@'%';"
+
+  - sleep 1
+  - http :8200/v1/mysql/roles/readonly X-Vault-Token:`cat ~/.vault-token`
+  - http :8200/v1/mysql/creds/readonly X-Vault-Token:`cat ~/.vault-token`
+
+  - vault write mysql/config/connection connection_url="root:mysql@tcp(mysql:3306)/vault"
+
+  - sleep 1
+  - export JSON=$(http -b --pretty=none :8200/v1/mysql/creds/readonly X-Vault-Token:`cat ~/.vault-token`)
+  - export USER=$(echo $JSON | jq -r '.data.username')
+  - export PASSWORD=$(echo $JSON | jq -r '.data.password')
+  - echo $USER\n$PASSWORD
+
+  - bash gradlew mysql-backend_docker_composeDown
 
 before_cache:
   - bash gradlew --stop
