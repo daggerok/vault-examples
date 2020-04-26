@@ -1,8 +1,32 @@
-.DS_Store
-.gradle/
-build/
-.idea/
+### IntelliJ IDEA ###
+.idea
+!.idea/
+.idea/*
+!.idea/runConfigurations/
 *.iws
 *.iml
 *.ipr
 out/
+build/
+target/
+.gradle/
+
+### STS ###
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+
+### NetBeans ###
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+build/
+
+### VS Code ###
+.vscode/

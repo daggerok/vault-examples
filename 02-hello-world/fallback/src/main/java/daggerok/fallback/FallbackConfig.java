@@ -15,9 +15,4 @@ public class FallbackConfig {
   public static void main(String[] args) {
     log.info("bootRepackage stub");
   }
-
-  @Bean
-  public EmbeddedServletContainerCustomizer notFoundFallback() {
-    return container -> container.addErrorPages(new ErrorPage(NOT_FOUND, "/404"));
-  }
 }

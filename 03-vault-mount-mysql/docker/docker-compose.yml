@@ -1,20 +1,30 @@
 version: "2.1"
+volumes:
+  mysql-data:
+  vault-data:
+networks:
+  backing-services:
 services:
   mysql:
     image: mysql:5.7.19
-    #image: healthcheck/mysql
     environment:
-      #MYSQL_ONETIME_PASSWORD: mysql
       MYSQL_ROOT_PASSWORD: mysql
       MYSQL_DATABASE: vault
       MYSQL_USER: vault
       MYSQL_PASSWORD: vault
     ports: ["3306:3306"]
     volumes: ["mysql-data:/var/lib/mysql"]
-    #networks: [backing-services]
+    networks: [backing-services]
+    healthcheck:
+      test: mysqladmin ping -h 127.0.0.1 -u $$MYSQL_USER --password=$$MYSQL_PASSWORD
+      retries: 33
+      timeout: 3s
+      interval: 3s
   vault:
     image: vault:0.8.1
-    depends_on: [mysql]
+    depends_on:
+      mysql:
+        condition: service_healthy
     environment:
       #VAULT_REDIRECT_INTERFACE: ...
       #VAULT_CLUSTER_INTERFACE: ...
@@ -23,10 +33,4 @@ services:
       VAULT_LOCAL_CONFIG: '{"backend": {"file": {"path": "/vault/file"}}, "default_lease_ttl": "168h", "max_lease_ttl": "720h"}'
     ports: ["8200:8200"]
     volumes: ["vault-data:/vault/file"]
-    #networks: [backing-services]
-volumes:
-  mysql-data: {}
-  vault-data: {}
-#networks:
-#  backing-services:
-#    driver: bridge
+    networks: [backing-services]

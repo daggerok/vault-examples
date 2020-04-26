@@ -1,4 +1,8 @@
 version: "2.1"
+volumes:
+  vault-data:
+networks:
+  backing-services:
 services:
   vault:
     image: vault:0.8.1
@@ -11,8 +15,3 @@ services:
     ports: ["8200:8200"]
     volumes: ["vault-data:/vault/file"]
     networks: [backing-services]
-volumes:
-  vault-data: {}
-networks:
-  backing-services:
-    driver: bridge

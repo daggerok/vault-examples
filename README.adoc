@@ -1,14 +1,16 @@
-= vault-examples image:https://travis-ci.org/daggerok/vault-examples.svg?branch=master["Build Status", link="https://travis-ci.org/daggerok/vault-examples"]
+= vault-examples image:https://github.com/daggerok/vault-examples/workflows/CI/badge.svg["CI", link="https://github.com/daggerok/vault-examples/actions?query=workflow%3ACI"] image:https://travis-ci.org/daggerok/vault-examples.svg?branch=master["Build Status", link="https://travis-ci.org/daggerok/vault-examples"]
 
 This repository contains some vault playground examples
 
-. link:02-hello-world/[hello world]
-. link:03-vault-mount-mysql/[mysql backend]
-. link:04-production-mode/[production config]
+== modules
 
-TODO:
+* link:02-hello-world/[hello world]
+* link:03-vault-mount-mysql/[mysql backend]
+* link:04-production-mode/[production config]
 
-. store into vault using plain java
-. use spring-boot auto-configuration + @VaultPropertySource
-. use vault to configure database connection
-. link:https://www.youtube.com/watch?v=lVZkj688R4I[view this]
+== TODO
+
+* store into vault using plain java
+* use spring-boot auto-configuration + @VaultPropertySource
+* use vault to configure database connection
+* link:https://www.youtube.com/watch?v=lVZkj688R4I[view this]

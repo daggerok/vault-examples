@@ -1,19 +1,28 @@
-group: edge
-dist: trusty
-
-services:
-  - docker
+notifications:
+  email: false
 
 language: java
-jdk: oraclejdk8
+jdk: openjdk8
+python: 3.8
+
+services:
+- docker
+
+os: linux
+arch: amd64
+addons:
+  apt:
+    update: false
+    packages:
+    - jq
+    - curl
+    - unzip
+    - httpie
+    - docker-ce
+    - libxml2-utils
 
 install: true
 before_install:
-
-  # install docker-compose
-  - sudo apt update
-  - sudo apt install -y curl jq libxml2-utils unzip
-  - sudo pip install httpie
 
   - export VAULT_VERSION="0.8.1"
   - export VAULT_PLATFORM="linux_amd64"
@@ -21,85 +30,102 @@ before_install:
   - export VAULT_URL="https://releases.hashicorp.com/vault/$VAULT_VERSION/$VAULT_ZIP"
   - curl -O $VAULT_URL
   - unzip $VAULT_ZIP
-  - mkdir -p ~/bin
-  - mv -f vault ~/bin/
-  - export PATH="~/bin:$PATH"
+  - mkdir -p ~/.local/daggerok/bin
+  - mv -f vault ~/.local/daggerok/bin/
+  - export PATH="$HOME/.local/daggerok/bin:$PATH"
+  #
+  - |
+    if [ ! -f ${HOME}/.local/daggerok/bash-functions/master/main.bash ] ; then
+      mkdir -p ${HOME}/.local/daggerok/bash-functions/master ;
+      curl -s https://raw.githubusercontent.com/daggerok/bash-functions/master/main.bash > ${HOME}/.local/daggerok/bash-functions/master/main.bash ;
+    fi
+    source ${HOME}/.local/daggerok/bash-functions/master/main.bash ;
+  - stop_any 80 8001 8002 8080 5432 3306
 
-  ## kill whatever punning
-  #- ls -la /etc/init.d/
-  - sudo service postgresql stop
-  - sudo service rabbitmq-server stop
-  - sudo service mysql stop
+jobs:
+  include:
 
-script:
-  #- bash gradlew template_clean template_build
-  - bash gradlew production-config_clean production-config_build
+  - stage: test
+    name: template tests
+    script: ./gradlew -p 0-template clean build
+
+  - stage: test
+    name: useless-shit tests
+    script: ./gradlew useless-shit-build
+
+  - stage: test
+    name: hello-world tests
+    script:
+    - ./gradlew hello-world-build
+
+  - stage: test
+    name: hello-world integration tests
+    script:
+    - ./gradlew hello-world-build
+    #
+    - ./gradlew hello-world-composeUp
+    #
+    - echo "myroot" > ~/.vault-token
+    - sleep 1
+    - export VAULT_ADDR='http://0.0.0.0:8200'
+    #
+    - sleep 1
+    - vault auth $(cat ~/.vault-token)
+    #
+    - vault write /secret/app/config/host hostname=localhost
+    - vault write /secret/app/config/user username=user password=pass
+    - sleep 1
+    #
+    - vault read /secret/app/config/host
+    - vault read --format=json /secret/app/config/host | jq -r .data
+    #
+    - http :8200/v1/secret/app/config/user X-Vault-Token:`cat ~/.vault-token`
+    - curl -sS localhost:8200/v1/secret/app/config/host -H "X-Vault-Token:$(cat ~/.vault-token)" | jq
+    - http -b --pretty=none :8200/v1/secret/app/config/user X-Vault-Token:`cat ~/.vault-token` | jq .data.password
+
+  - stage: test
+    name: mysql-backend integration tests
+    script:
+    - ./gradlew mysql-backend-composeUp
+    #
+    - echo "myroot" > ~/.vault-token
+    - sleep 1
+    - export VAULT_ADDR='http://0.0.0.0:8200'
+    #
+    - sleep 1
+    - vault auth `cat ~/.vault-token`
+    #
+    - sleep 1
+    - vault mount mysql
+    - sleep 1
+    - vault write mysql/config/connection connection_url="vault:vault@tcp(mysql:3306)/vault"
+    #
+    - sleep 1
+    - vault write mysql/roles/readonly \
+      sql="CREATE USER '{{name}}'@'%' IDENTIFIED BY '{{password}}'; GRANT SELECT ON *.* TO '{{name}}'@'%';"
+    #
+    - sleep 1
+    - http :8200/v1/mysql/roles/readonly X-Vault-Token:`cat ~/.vault-token`
+    - http :8200/v1/mysql/creds/readonly X-Vault-Token:`cat ~/.vault-token`
+    #
+    - vault write mysql/config/connection connection_url="root:mysql@tcp(mysql:3306)/vault"
+    #
+    - sleep 1
+    - export JSON=$(http -b --pretty=none :8200/v1/mysql/creds/readonly X-Vault-Token:`cat ~/.vault-token`)
+    - export USER=$(echo $JSON | jq -r '.data.username')
+    - export PASSWORD=$(echo $JSON | jq -r '.data.password')
+    - echo $USER\n$PASSWORD
 
 after_script:
-
-  # hello-world
-  - bash gradlew hello-world_docker_composeUp
-
-  - echo "myroot" > ~/.vault-token
-  - sleep 1
-  - export VAULT_ADDR='http://0.0.0.0:8200'
-
-  - sleep 1
-  - vault auth $(cat ~/.vault-token)
-
-  - vault write /secret/app/config/host hostname=localhost
-  - vault write /secret/app/config/user username=user password=pass
-  - sleep 1
-
-  - vault read /secret/app/config/host
-  - vault read --format=json /secret/app/config/host | jq -r .data
-
-  - http :8200/v1/secret/app/config/user X-Vault-Token:`cat ~/.vault-token`
-  - curl -sS localhost:8200/v1/secret/app/config/host -H "X-Vault-Token:$(cat ~/.vault-token)" | jq
-  - http -b --pretty=none :8200/v1/secret/app/config/user X-Vault-Token:`cat ~/.vault-token` | jq .data.password
-
-  - bash gradlew hello-world_docker_composeDown
-
-  # vault-mount-mysql
-  - bash gradlew mysql-backend_docker_composeUp
-
-  - echo "myroot" > ~/.vault-token
-  - sleep 1
-  - export VAULT_ADDR='http://0.0.0.0:8200'
-
-  - sleep 1
-  - vault auth $(cat ~/.vault-token)
-
-  - sleep 1
-  - vault mount mysql
-  - sleep 1
-  - vault write mysql/config/connection connection_url="vault:vault@tcp(mysql:3306)/vault"
-
-  - sleep 1
-  - vault write mysql/roles/readonly \
-      sql="CREATE USER '{{name}}'@'%' IDENTIFIED BY '{{password}}'; GRANT SELECT ON *.* TO '{{name}}'@'%';"
-
-  - sleep 1
-  - http :8200/v1/mysql/roles/readonly X-Vault-Token:`cat ~/.vault-token`
-  - http :8200/v1/mysql/creds/readonly X-Vault-Token:`cat ~/.vault-token`
-
-  - vault write mysql/config/connection connection_url="root:mysql@tcp(mysql:3306)/vault"
-
-  - sleep 1
-  - export JSON=$(http -b --pretty=none :8200/v1/mysql/creds/readonly X-Vault-Token:`cat ~/.vault-token`)
-  - export USER=$(echo $JSON | jq -r '.data.username')
-  - export PASSWORD=$(echo $JSON | jq -r '.data.password')
-  - echo $USER\n$PASSWORD
-
-  - bash gradlew mysql-backend_docker_composeDown
+  - ./gradlew composeDown
 
 before_cache:
   - bash gradlew --stop
-  - rm -rf $HOME/.gradle/caches/modules-2/modules-2.lock
-  - rm -rf $HOME/.gradle/caches/*/plugin-resolution/
+  - rm -rf ~/.gradle/caches/modules-2/modules-2.lock
+  - rm -rf ~/.gradle/caches/*/plugin-resolution/
 
 cache:
   directories:
-    - $HOME/.m2/
-    - $HOME/.gradle/caches/
-    - $HOME/.gradle/wrapper/
+    - ~/.m2/
+    - ~/.gradle
+    - ~/.local/daggerok/bin

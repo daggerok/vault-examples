@@ -1,0 +1,129 @@
+name: CI
+on: [push]
+env:
+  SPRING_PROFILES_ACTIVE: ci
+jobs:
+  gradle-clean-build:
+    strategy:
+      matrix:
+        java: [1.8]
+        os: [ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    name: java-${{ matrix.java }} just ./gradlew clean build
+    steps:
+    - uses: actions/checkout@v1
+    - uses: actions/cache@v1
+      with:
+        path: ~/.m2
+        key: ${{ runner.os }}-java-${{ hashFiles('**/gradlew') }}
+        restore-keys: |
+          ${{ runner.os }}-docker-
+          ${{ runner.os }}-java-
+          ${{ runner.os }}-node-
+          ${{ runner.os }}-npm-
+          ${{ runner.os }}-
+    - uses: actions/cache@v1
+      with:
+        path: ~/.docker
+        key: ${{ runner.os }}-docker-${{ hashFiles('**/gradlew') }}
+        restore-keys: |
+          ${{ runner.os }}-docker-
+          ${{ runner.os }}-java-
+          ${{ runner.os }}-node-
+          ${{ runner.os }}-npm-
+          ${{ runner.os }}-
+    - uses: actions/cache@v1
+      with:
+        path: ~/.npm
+        key: ${{ runner.os }}-npm-${{ hashFiles('**/gradlew') }}
+        restore-keys: |
+          ${{ runner.os }}-docker-
+          ${{ runner.os }}-java-
+          ${{ runner.os }}-node-
+          ${{ runner.os }}-npm-
+          ${{ runner.os }}-
+    - uses: actions/cache@v1
+      with:
+        path: ~/.node
+        key: ${{ runner.os }}-java-${{ hashFiles('**/gradlew') }}
+        restore-keys: |
+          ${{ runner.os }}-docker-
+          ${{ runner.os }}-java-
+          ${{ runner.os }}-node-
+          ${{ runner.os }}-npm-
+          ${{ runner.os }}-
+    - uses: actions/setup-node@v1
+    - uses: actions/setup-java@v1
+      with:
+        java-version: ${{ matrix.java }}
+    - run: command -v docker >/dev/null 2>&1 || { echo >&2 "I require docker but it's not installed.  Aborting."; exit 1; }
+    - run: sudo apt-get install -y httpie curl jq
+    - run: npm i -g wait-port
+    - run: cd $GITHUB_WORKSPACE && ./gradlew clean build
+    #- run: ( bash $GITHUB_WORKSPACE/step-0-application-without-security/target/*jar --spring.profiles.active=ci & ) || echo ...
+    #- run: while [[ ! 200 -eq `curl -s -o /dev/null -w "%{http_code}" 0:8080/actuator/health` ]] ; do sleep 1s ; echo -n '.' ; done
+    #- run: wait-port 8080
+    #- run: http get :8080
+    #- run: curl 0:8080
+    #- run: http --ignore-stdin post :8080/actuator/shutdown
+    - run: cd $GITHUB_WORKSPACE && ./gradlew composeDown
+  mysql-backend-tests:
+    strategy:
+      matrix:
+        java: [1.8]
+        os: [ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    name: java-${{ matrix.java }} mysql-backend tests
+    steps:
+    - uses: actions/checkout@v1
+    - uses: actions/cache@v1
+      with:
+        path: ~/.m2
+        key: ${{ runner.os }}-java-${{ hashFiles('**/gradlew') }}
+        restore-keys: |
+          ${{ runner.os }}-docker-
+          ${{ runner.os }}-java-
+          ${{ runner.os }}-
+    - uses: actions/cache@v1
+      with:
+        path: ~/.docker
+        key: ${{ runner.os }}-docker-${{ hashFiles('**/gradlew') }}
+        restore-keys: |
+          ${{ runner.os }}-docker-
+          ${{ runner.os }}-java-
+          ${{ runner.os }}-
+    - uses: actions/setup-java@v1
+      with:
+        java-version: ${{ matrix.java }}
+    - run: command -v docker >/dev/null 2>&1 || { echo >&2 "I require docker but it's not installed.  Aborting."; exit 1; }
+    - run: cd $GITHUB_WORKSPACE && ./gradlew mysql-backend-build
+  production-config-tests:
+    strategy:
+      matrix:
+        java: [1.8]
+        os: [ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    name: java-${{ matrix.java }} mysql-backend tests
+    steps:
+    - uses: actions/checkout@v1
+    - uses: actions/cache@v1
+      with:
+        path: ~/.m2
+        key: ${{ runner.os }}-java-${{ hashFiles('**/gradlew') }}
+        restore-keys: |
+          ${{ runner.os }}-docker-
+          ${{ runner.os }}-java-
+          ${{ runner.os }}-
+    - uses: actions/cache@v1
+      with:
+        path: ~/.docker
+        key: ${{ runner.os }}-docker-${{ hashFiles('**/gradlew') }}
+        restore-keys: |
+          ${{ runner.os }}-docker-
+          ${{ runner.os }}-java-
+          ${{ runner.os }}-
+    - uses: actions/setup-java@v1
+      with:
+        java-version: ${{ matrix.java }}
+    - run: command -v docker >/dev/null 2>&1 || { echo >&2 "I require docker but it's not installed.  Aborting."; exit 1; }
+    - run: cd $GITHUB_WORKSPACE && ./gradlew -p 04-production-mode clean build

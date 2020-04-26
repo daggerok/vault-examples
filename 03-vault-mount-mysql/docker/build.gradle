@@ -7,7 +7,7 @@ def root = rootDir.absolutePath.replaceAll("\\\\", '/')
 
 dockerCompose {
   useComposeFiles = ["$root/docker/docker-compose.yml"]
-  captureContainersOutput = true
+  captureContainersOutput = false // true
   stopContainers = true
   removeContainers = true
   removeImages = "Local"
